@@ -25,7 +25,7 @@ async def start_bot(message: types.Message):
 @router.callback_query(StateFilter(None), F.data == "start_instruction")
 async def read_instruction(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.instruction)
-    await callback.message.answer(text='🎁 Вам начислено 7 дней! ')
+    await callback.message.answer(text='🎁 Вамей! ')
     await callback.message.answer(text=common_texts.instruction, disable_web_page_preview=True,
                                      reply_markup=get_start_menu())
 
