@@ -1,0 +1,1 @@
+from .common_texts import texts as common_texts
