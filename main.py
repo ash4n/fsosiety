@@ -1,7 +1,7 @@
 
 import asyncio
 import os
-
+import api.gigachat_api,api.kandinsky
 from aiogram import Bot, Dispatcher
 from aiohttp import ClientSession
 from dotenv import load_dotenv
@@ -15,7 +15,8 @@ import logging
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-
+giga = api.gigachat_api.GigaChatAPI("MDE5YTdkODktZWQzYi03ZGMwLTliZjQtYmJiMjg0YWUzZmRjOmFjNDdkMzkxLWI5YmItNDI1ZC1iZTdjLWQ1OTZiMWYzMGZhOA==")
+kandinksy = api.kandinsky.AsyncFusionBrainAPI('EF310F8E5AD822635A24D0D9E083C9BF', 'E3634B76FB7974D63D7A5BB04B4704E7')
 session: ClientSession | None = None
 
 redis_conn = redis.Redis(
