@@ -45,7 +45,7 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
                                    reply_markup=get_menu_keyboard())
     else:
         text = event.text
-        # if text != "/start": твоя функция тут
+        # if text != "/start": твоя функця тут
 
         await event.edit_text(text=f'{text}',
                            reply_markup=get_menu_keyboard())
