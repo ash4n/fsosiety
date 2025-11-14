@@ -124,7 +124,7 @@ class GeneratePrompt:
     
     async def generate_content_prompt(self, user_text: str, style: str, nko_information: str) -> str:
         """
-        Формирует промпт для нейросети на основе пользовательского запроса.
+        Формирует промпт для нейросети на основе пользовательского запроса .
     
         Args:
             user_text: Текст запроса от пользователя
