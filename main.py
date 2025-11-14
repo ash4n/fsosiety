@@ -11,7 +11,6 @@ from handlers import register_all_handlers
 
 from aiogram.fsm.storage.redis import RedisStorage
 import redis.asyncio as redis
-
 import logging
 
 load_dotenv()
