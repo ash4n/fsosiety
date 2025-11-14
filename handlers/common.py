@@ -34,3 +34,10 @@ async def read_instruction(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.instruction)
     await callback.message.answer(text=common_texts.instruction, disable_web_page_preview=True,
                                      reply_markup=get_start_menu())
+    
+
+@router.callback_query(F.data == "generate_text")
+async def read_instruction(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.instruction)
+    await callback.message.answer(text=common_texts.instruction, disable_web_page_preview=True,
+                                     reply_markup=get_start_menu())
