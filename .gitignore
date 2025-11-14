@@ -157,8 +157,14 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
+# visual studio
+.vs/
+
 # Cython debug symbols
 cython_debug/
+
+#visual studio 
+.vs/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
