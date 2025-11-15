@@ -13,3 +13,9 @@ def get_menu_keyboard():
         [InlineKeyboardButton(text='💾 Сохраненные посты', callback_data='saved_posts')],
         [InlineKeyboardButton(text='⚙️ Настройки НКО', callback_data='nko_settings')],
     ])
+
+def get_text_generation_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='Свободная', callback_data='free')],
+        [InlineKeyboardButton(text='Структурированная', callback_data='structured')],
+    ])

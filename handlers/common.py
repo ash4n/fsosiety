@@ -4,12 +4,12 @@ from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from services import create_profile
+from api import giga
+from services import create_profile, add_npo_information
 from states import MainStates
 
-from keyboards import get_start_keyboard, get_menu_keyboard
+from keyboards import get_start_keyboard, get_menu_keyboard, get_text_generation_keyboard
 from texts import common_texts
-
 router = Router()
 
 
@@ -28,18 +28,6 @@ async def get_text(callback: types.CallbackQuery, state: FSMContext):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 @router.message(MainStates.name_NPO)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     await show_main_menu(message, state)
@@ -50,10 +38,8 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data == 'main_menu')
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
-
     await show_main_menu(callback, state)
     
-
 
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.main_menu)
@@ -63,11 +49,25 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
                                    reply_markup=get_menu_keyboard())
     else:
         text = event.text
-        # if text != "/start": твоя функця тут
         if text != "/start":
-            await event.edit_text(text=f'{text}',
+            await add_npo_information(info=text, user_id=event.from_user.id)
+        await event.answer(text='меню тип',
                             reply_markup=get_menu_keyboard())
-        else:
-            await event.answer(text=f'{text}',
-                            reply_markup=get_menu_keyboard())
-    
+
+
+@router.callback_query(MainStates.main_menu, F.data == 'text_generation')
+async def choose_form(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text="Выберите форму",
+                                  reply_markup=get_text_generation_keyboard())
+
+@router.callback_query(MainStates.main_menu, F.data == 'free')
+async def text_input(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.free_text)
+    await callback.message.answer(text="Введите текст:")
+
+@router.message(MainStates.free_text)
+async def generate_texts(message: types.Message, state: FSMContext):
+    await state.set_state(MainStates.free_text)
+    await message.answer(text="Генерирую текст, пожалуйста подождите")
+    response = await giga.generate_text(message.text)
+    await message.answer(text=response)
