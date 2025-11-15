@@ -12,12 +12,14 @@ from handlers import register_all_handlers
 from aiogram.fsm.storage.redis import RedisStorage
 import redis.asyncio as redis
 import logging
-
+import handlers.common
 load_dotenv()
 TELEGRAM_TOKEN = "8512556585:AAFu5gRiT4AGi1vQrBhBLVuZoi3sU0a_b3k"
 giga = api.gigachat_api.GigaChatAPI("MDE5YTdkODktZWQzYi03ZGMwLTliZjQtYmJiMjg0YWUzZmRjOmFjNDdkMzkxLWI5YmItNDI1ZC1iZTdjLWQ1OTZiMWYzMGZhOA==")
 kandinksy = api.kandinsky.AsyncFusionBrainAPI('EF310F8E5AD822635A24D0D9E083C9BF', 'E3634B76FB7974D63D7A5BB04B4704E7')
 session: ClientSession | None = None
+handlers.common.kandinsky = kandinksy
+handlers.common.giga = kandinksy
 
 redis_conn = redis.Redis(
     host='localhost',
