@@ -25,6 +25,21 @@ async def get_text(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.name_NPO)
     await callback.message.edit_text("Название пиши и описание")
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @router.message(MainStates.name_NPO)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     await show_main_menu(message, state)
@@ -35,7 +50,10 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data == 'main_menu')
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+
     await show_main_menu(callback, state)
+    
+
 
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.main_menu)
@@ -46,9 +64,12 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
     else:
         text = event.text
         # if text != "/start": твоя функця тут
-
-        await event.answer(text=f'{text}',
-                           reply_markup=get_menu_keyboard())
+        if text != "/start":
+            await event.edit_text(text=f'{text}',
+                            reply_markup=get_menu_keyboard())
+        else:
+            await event.answer(text=f'{text}',
+                            reply_markup=get_menu_keyboard())
     
     
 
