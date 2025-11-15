@@ -54,6 +54,7 @@ class AsyncFusionBrainAPI:
 
         async with self.session.post(self.URL + 'key/api/v1/pipeline/run', data=data) as response:
             result = await response.json()
+            print(result)
             return result['uuid']
 
     async def _wait_for_generation(self, request_id: str, attempts: int = 30, delay: int = 5) -> Optional[str]:

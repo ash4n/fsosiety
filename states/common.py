@@ -5,3 +5,4 @@ class MainStates(StatesGroup):
     name_NPO = State()
     main_menu = State()
     image_caption_input = State()
+    free_text = State()

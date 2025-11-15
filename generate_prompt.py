@@ -1,7 +1,7 @@
 import api.gigachat_api
 
 class GeneratePrompt:
-    async def generate_prompt_for_image(self, user_request: str, nko_information: str, giga: api.gigachat_api.GigaChatAPI) -> str:
+    async def generate_prompt_for_image(user_request: str, nko_information: str, giga: api.gigachat_api.GigaChatAPI) -> str:
         # Формируем системный промпт в зависимости от наличия информации об НКО
         base_system_prompt = """
         Ты профессиональный ассистент для создания детализированных промптов для генерации изображений. 

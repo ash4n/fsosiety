@@ -4,10 +4,11 @@ from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from io import BytesIO
+from api import kandinsky
 import api.kandinsky
 from aiogram.types import BufferedInputFile
 from api import giga
-from api import kandinsky
+from api import kandinsky 
 import generate_prompt
 from keyboards.common_keyboards import get_text_generation_keyboard
 from services import create_profile
@@ -41,13 +42,19 @@ async def text_input(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.free_text)
     await callback.message.answer(text="Введите текст:")
 
+@router.callback_query(MainStates.main_menu, F.data == 'structured')
+async def text_input(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.free_text)
+    await callback.message.answer(text="Введите текст:")
+    
 @router.message(MainStates.free_text)
 async def generate_texts(message: types.Message, state: FSMContext):
     await state.set_state(MainStates.free_text)
     await message.answer(text="Генерирую текст, пожалуйста подождите")
     response = await giga.generate_text(message.text)
     await message.answer(text=response)
-    
+
+    await state.set_state(MainStates.main_menu)
 @router.message(MainStates.name_NPO)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     await show_main_menu(message, state)
@@ -58,10 +65,23 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 
 @router.message(MainStates.image_caption_input)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
-    image_data = base64.b64decode(kandinsky.generate_image(generate_prompt.GeneratePrompt.generate_prompt_for_image(message.text,None,giga)))
-
-    await message.answer_photo(message.from_user.id,caption="✅ Ваше сгенерированное изображение",photo=BufferedInputFile(image_data, filename="image.jpg"))
-
+    await message.answer(text="Генерирую изображение, пожалуйста подождите")
+    
+    prompt = await generate_prompt.GeneratePrompt.generate_prompt_for_image(
+        user_request=message.text, 
+        nko_information=None, 
+        giga=giga
+    )
+    
+    # Используем асинхронный контекстный менеджер для kandinsky
+    async with kandinsky as api:
+        image_data_base64 = await api.generate_image(prompt)
+        image_data = base64.b64decode(image_data_base64)
+        
+        await message.answer_photo(
+            photo=BufferedInputFile(image_data, filename="image.jpg"),
+            caption="✅ Ваше сгенерированное изображение"
+        )
 @router.callback_query(F.data == 'main_menu')
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
 
