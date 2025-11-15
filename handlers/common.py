@@ -59,7 +59,7 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
     await state.set_state(MainStates.main_menu)
 
     if isinstance(event, types.CallbackQuery):
-        await event.message.answer(text='меню крч',
+        await event.message.edit_text(text='меню крч',
                                    reply_markup=get_menu_keyboard())
     else:
         text = event.text
@@ -71,5 +71,3 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
             await event.answer(text=f'{text}',
                             reply_markup=get_menu_keyboard())
     
-    
-
