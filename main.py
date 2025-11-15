@@ -1,17 +1,14 @@
-
 import asyncio
 from aiogram import Bot, Dispatcher
 from aiohttp import ClientSession
 from dotenv import load_dotenv
 
-from api import kandinsky
 from services import init_db
 from handlers import register_all_handlers
 
 from aiogram.fsm.storage.redis import RedisStorage
 import redis.asyncio as redis
 import logging
-import handlers.common
 
 load_dotenv()
 TELEGRAM_TOKEN = "8398140480:AAGxkSFUHHw_6XqkEg9O9DzhfTvBbYE3nrg"
@@ -56,4 +53,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logging.info("Bot stopped manually")
-    

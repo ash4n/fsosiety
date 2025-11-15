@@ -1,25 +1,23 @@
+import generate_prompt
+import keyboards.common_keyboards
+from helpers import escape_markdown_v2
+from base64 import b64decode
+from api import giga,kandinsky
 from aiogram import Router, types, F
 from aiogram.filters import StateFilter
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from io import BytesIO
-from api import kandinsky
-import api.kandinsky
 from aiogram.types import BufferedInputFile
-from api import giga
-from api import kandinsky 
-import generate_prompt
-from keyboards.common_keyboards import get_text_generation_keyboard
 from services import create_profile
 from states import MainStates
-import base64
-from keyboards import get_start_keyboard, get_menu_keyboard
+from keyboards import *
 from texts import common_texts
 
 router = Router()
 
-
+#/start (первый запуск)
 @router.message(StateFilter(None), Command('start'))
 async def start_bot(message: types.Message, state: FSMContext):
     await create_profile(user_id=message.from_user.id)
@@ -27,73 +25,17 @@ async def start_bot(message: types.Message, state: FSMContext):
     await message.answer(text=common_texts.welcome,
                          reply_markup=get_start_keyboard())
 
-@router.callback_query(MainStates.active, F.data == "yes")
-async def get_text(callback: types.CallbackQuery, state: FSMContext):
-    await state.set_state(MainStates.name_NPO)
-    await callback.message.edit_text("Название пиши и описание")
-
-@router.callback_query(MainStates.main_menu, F.data == 'text_generation')
-async def choose_form(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer(text="Выберите форму",
-                                  reply_markup=get_text_generation_keyboard())
-
-@router.callback_query(MainStates.main_menu, F.data == 'free')
-async def text_input(callback: types.CallbackQuery, state: FSMContext):
-    await state.set_state(MainStates.free_text)
-    await callback.message.answer(text="Введите текст:")
-
-@router.callback_query(MainStates.main_menu, F.data == 'structured')
-async def text_input(callback: types.CallbackQuery, state: FSMContext):
-    await state.set_state(MainStates.free_text)
-    await callback.message.answer(text="Введите текст:")
-    
-@router.message(MainStates.free_text)
-async def generate_texts(message: types.Message, state: FSMContext):
-    await state.set_state(MainStates.free_text)
-    await message.answer(text="Генерирую текст, пожалуйста подождите")
-    response = await giga.generate_text(message.text)
-    await message.answer(text=response)
-
-    await state.set_state(MainStates.main_menu)
-@router.message(MainStates.name_NPO)
-async def handle_start_non_none(message: types.Message, state: FSMContext):
-    await show_main_menu(message, state)
-
+#/start (после первого запуска)
 @router.message(Command('start'), ~StateFilter(None))
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     await show_main_menu(message, state)
 
-@router.message(MainStates.image_caption_input)
-async def handle_start_non_none(message: types.Message, state: FSMContext):
-    await message.answer(text="Генерирую изображение, пожалуйста подождите")
-    
-    prompt = await generate_prompt.GeneratePrompt.generate_prompt_for_image(
-        user_request=message.text, 
-        nko_information=None, 
-        giga=giga
-    )
-    
-    # Используем асинхронный контекстный менеджер для kandinsky
-    async with kandinsky as api:
-        image_data_base64 = await api.generate_image(prompt)
-        image_data = base64.b64decode(image_data_base64)
-        
-        await message.answer_photo(
-            photo=BufferedInputFile(image_data, filename="image.jpg"),
-            caption="✅ Ваше сгенерированное изображение"
-        )
+#/start -> ⏩ Пропустить → Главное меню
 @router.callback_query(F.data == 'main_menu')
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
-
     await show_main_menu(callback, state)
     
-@router.callback_query(F.data == 'image_generation')
-async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
-    await state.set_state(MainStates.image_caption_input)
-    await callback.message.edit_text(text=f"Введите текстовое описание картинки для генерации.",reply_markup=None)
-
-
-
+#функция запуска основного меню
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.main_menu)
 
@@ -110,3 +52,79 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
             await event.answer(text=f'{text}',
                             reply_markup=get_menu_keyboard())
     
+#/start -> 🏢 Настроить профиль НКО
+@router.callback_query(MainStates.active, F.data == "input_nko_info")
+async def get_text(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.name_NPO)
+    await callback.message.edit_text("Название пиши и описание")
+
+#menu->📝 Генерация текста
+@router.callback_query(MainStates.main_menu, F.data == 'text_generation')
+async def choose_form(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text="Выберите стиль",
+                                  reply_markup=get_text_styles_keyboard())
+
+#menu->📝 Генерация текста -> Выберите стиль
+@router.callback_query(F.data.startswith('style'))
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    style_number = int(callback.data.replace('style', ''))
+    styles = ['Информационный / Образовательный','Развлекательный / Юмористический','Вовлекающий (для вовлечения аудитории)','Вдохновляющий / Мотивирующий','Личный / История','Новостной / Анонсирующий']
+    
+    selected_style = styles[style_number]
+    await state.set_state(MainStates.text_generation_state)
+    await state.update_data(style=selected_style)
+
+    
+    await callback.message.answer(text="Выберите форму",
+                                  reply_markup=get_text_generation_keyboard())
+
+#menu->📝 Генерация текста -> Выберите стиль -> Выберите форму
+@router.callback_query(MainStates.text_generation_state, F.data == 'text_gen_input')
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text="Введите текст:")
+
+
+#menu->📝 Генерация текста -> Выберите стиль -> Выберите форму -> генерация текста
+@router.message(MainStates.text_generation_state)
+async def generate_texts(message: types.Message, state: FSMContext):
+    await message.answer(text="Генерирую текст, пожалуйста подождите")
+    data = await state.get_data()
+    style = data.get("style")
+    response = await giga.generate_text(await generate_prompt.GeneratePrompt.generate_content_prompt(message.text,style,None))
+    await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=back_to_main_keyboard())
+    await state.clear()
+    await state.set_state(MainStates.main_menu)
+
+#/start -> 🏢 Настроить профиль НКО -> обработка текста
+@router.message(MainStates.name_NPO)
+async def handle_start_non_none(message: types.Message, state: FSMContext):
+    await show_main_menu(message, state)
+
+#меню ->  🎨 Генерация картинки 
+@router.callback_query(F.data == 'image_generation')
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.image_caption_input)
+    await callback.message.edit_text(text=f"Введите текстовое описание картинки для генерации.",reply_markup=None)
+
+#меню ->  🎨 Генерация картинки -> обработка текста
+@router.message(MainStates.image_caption_input)
+async def handle_start_non_none(message: types.Message, state: FSMContext):
+    await message.answer(text="Генерирую изображение, пожалуйста подождите")
+    
+    prompt = await generate_prompt.GeneratePrompt.generate_prompt_for_image(
+        user_request=message.text, 
+        nko_information=None, 
+        giga=giga
+    )
+    
+    # Используем асинхронный контекстный менеджер для kandinsky
+    async with kandinsky as api:
+        image_data_base64 = await api.generate_image(prompt)
+        image_data = b64decode(image_data_base64)
+        
+        await message.answer_photo(
+            photo=BufferedInputFile(image_data, filename="image.jpg"),
+            caption="✅ Ваше сгенерированное изображение",
+            reply_markup=back_to_main_keyboard()
+        )
+
