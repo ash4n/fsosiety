@@ -122,7 +122,7 @@ class GeneratePrompt:
     
         return detailed_description.strip()
     
-    async def generate_content_prompt(self, user_text: str, style: str, nko_information: str) -> str:
+    async def generate_content_prompt( user_text: str, style: str, nko_information: str) -> str:
         """
         Формирует промпт для нейросети на основе пользовательского запроса .
     
@@ -223,6 +223,7 @@ class GeneratePrompt:
         - Будь конкретным и практичным
         - Используй структурированный подход
         - Предлагай реализуемые решения
+        - Не более 2000 символов
         """
     
         return final_prompt.strip()

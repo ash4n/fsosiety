@@ -1,7 +1,4 @@
-
 import asyncio
-import os
-import api.gigachat_api,api.kandinsky
 from aiogram import Bot, Dispatcher
 from aiohttp import ClientSession
 from dotenv import load_dotenv
@@ -12,15 +9,10 @@ from handlers import register_all_handlers
 from aiogram.fsm.storage.redis import RedisStorage
 import redis.asyncio as redis
 import logging
-import handlers.common
-load_dotenv()
-TELEGRAM_TOKEN = "8512556585:AAFu5gRiT4AGi1vQrBhBLVuZoi3sU0a_b3k"
-giga = api.gigachat_api.GigaChatAPI("MDE5YTdkODktZWQzYi03ZGMwLTliZjQtYmJiMjg0YWUzZmRjOmFjNDdkMzkxLWI5YmItNDI1ZC1iZTdjLWQ1OTZiMWYzMGZhOA==")
-kandinksy = api.kandinsky.AsyncFusionBrainAPI('EF310F8E5AD822635A24D0D9E083C9BF', 'E3634B76FB7974D63D7A5BB04B4704E7')
-session: ClientSession | None = None
-handlers.common.kandinsky = kandinksy
-handlers.common.giga = kandinksy
 
+load_dotenv()
+TELEGRAM_TOKEN = "8398140480:AAGxkSFUHHw_6XqkEg9O9DzhfTvBbYE3nrg"
+session: ClientSession | None = None
 redis_conn = redis.Redis(
     host='localhost',
     port=6379,
@@ -30,7 +22,6 @@ redis_conn = redis.Redis(
 )
 
 storage = RedisStorage(redis=redis_conn)
-
 
 async def main():
     global session

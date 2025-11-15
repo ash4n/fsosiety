@@ -1,17 +1,18 @@
+import generate_prompt
+import keyboards.common_keyboards
+from helpers import escape_markdown_v2
+from base64 import b64decode
+from api import giga,kandinsky
 from aiogram import Router, types, F
 from aiogram.filters import StateFilter
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from io import BytesIO
-import api.kandinsky
 from aiogram.types import BufferedInputFile
-import api.gigachat_api
-import generate_prompt
 from services import create_profile
 from states import MainStates
-import base64
-from keyboards import get_start_keyboard, get_menu_keyboard
+from keyboards import *
 from texts import common_texts
 
 router = Router()
@@ -60,21 +61,38 @@ async def get_text(callback: types.CallbackQuery, state: FSMContext):
 #menu->📝 Генерация текста
 @router.callback_query(MainStates.main_menu, F.data == 'text_generation')
 async def choose_form(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text="Выберите стиль",
+                                  reply_markup=get_text_styles_keyboard())
+
+#menu->📝 Генерация текста -> Выберите стиль
+@router.callback_query(F.data.startswith('style'))
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    style_number = int(callback.data.replace('style', ''))
+    styles = ['Информационный / Образовательный','Развлекательный / Юмористический','Вовлекающий (для вовлечения аудитории)','Вдохновляющий / Мотивирующий','Личный / История','Новостной / Анонсирующий']
+    
+    selected_style = styles[style_number]
+    await state.set_state(MainStates.text_generation_state)
+    await state.update_data(style=selected_style)
+
+    
     await callback.message.answer(text="Выберите форму",
                                   reply_markup=get_text_generation_keyboard())
 
-#menu->📝 Генерация текста -> Выберите форму
-@router.callback_query(MainStates.main_menu, F.data == 'text_gen_input')
-async def text_input(callback: types.CallbackQuery, state: FSMContext):
-    await state.set_state(MainStates.text_generation_state)
-    await callback.message.edit_text(text="Какое событие? Когда оно проходит? Где оно проходит? Кто приглашен? Какие-то дополнительные детали?")
+#menu->📝 Генерация текста -> Выберите стиль -> Выберите форму
+@router.callback_query(MainStates.text_generation_state, F.data == 'text_gen_input')
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text="Введите текст:")
 
-#menu->📝 Генерация текста -> Выберите форму -> после ввода текста
+
+#menu->📝 Генерация текста -> Выберите стиль -> Выберите форму -> генерация текста
 @router.message(MainStates.text_generation_state)
 async def generate_texts(message: types.Message, state: FSMContext):
     await message.answer(text="Генерирую текст, пожалуйста подождите")
-    response = await giga.generate_text(generate_prompt.generate_content_prompt(message.text))
-    await message.answer(text=response)
+    data = await state.get_data()
+    style = data.get("style")
+    response = await giga.generate_text(await generate_prompt.GeneratePrompt.generate_content_prompt(message.text,style,None))
+    await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=back_to_main_keyboard())
+    await state.clear()
     await state.set_state(MainStates.main_menu)
 
 #/start -> 🏢 Настроить профиль НКО -> обработка текста
@@ -102,10 +120,11 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
     # Используем асинхронный контекстный менеджер для kandinsky
     async with kandinsky as api:
         image_data_base64 = await api.generate_image(prompt)
-        image_data = base64.b64decode(image_data_base64)
+        image_data = b64decode(image_data_base64)
         
         await message.answer_photo(
             photo=BufferedInputFile(image_data, filename="image.jpg"),
-            caption="✅ Ваше сгенерированное изображение"
+            caption="✅ Ваше сгенерированное изображение",
+            reply_markup=back_to_main_keyboard()
         )
 
