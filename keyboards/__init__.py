@@ -1,1 +1,1 @@
-from .common_keyboards import get_start_keyboard, get_menu_keyboard
+from .common_keyboards import get_start_keyboard, get_menu_keyboard, get_text_generation_keyboard
