@@ -14,9 +14,6 @@ import handlers.common
 load_dotenv()
 TELEGRAM_TOKEN = "8398140480:AAGxkSFUHHw_6XqkEg9O9DzhfTvBbYE3nrg"
 session: ClientSession | None = None
-handlers.common.kandinsky = kandinksy
-handlers.common.giga = kandinksy
-
 redis_conn = redis.Redis(
     host='localhost',
     port=6379,

@@ -6,8 +6,10 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from io import BytesIO
 import api.kandinsky
 from aiogram.types import BufferedInputFile
-import api.gigachat_api
+from api import giga
+from api import kandinsky
 import generate_prompt
+from keyboards.common_keyboards import get_text_generation_keyboard
 from services import create_profile
 from states import MainStates
 import base64
@@ -16,8 +18,6 @@ from texts import common_texts
 
 router = Router()
 
-kandinsky = api.kandinsky.AsyncFusionBrainAPI("","")
-giga = api.gigachat_api.GigaChatAPI("")
 
 @router.message(StateFilter(None), Command('start'))
 async def start_bot(message: types.Message, state: FSMContext):
@@ -31,7 +31,23 @@ async def get_text(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.name_NPO)
     await callback.message.edit_text("Название пиши и описание")
 
+@router.callback_query(MainStates.main_menu, F.data == 'text_generation')
+async def choose_form(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text="Выберите форму",
+                                  reply_markup=get_text_generation_keyboard())
 
+@router.callback_query(MainStates.main_menu, F.data == 'free')
+async def text_input(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.free_text)
+    await callback.message.answer(text="Введите текст:")
+
+@router.message(MainStates.free_text)
+async def generate_texts(message: types.Message, state: FSMContext):
+    await state.set_state(MainStates.free_text)
+    await message.answer(text="Генерирую текст, пожалуйста подождите")
+    response = await giga.generate_text(message.text)
+    await message.answer(text=response)
+    
 @router.message(MainStates.name_NPO)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     await show_main_menu(message, state)
