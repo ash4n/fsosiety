@@ -57,3 +57,12 @@ def generate_content_plan_keyboard():
         [InlineKeyboardButton(text='💾 Сохранить', callback_data='save_text')],
         [InlineKeyboardButton(text='🎨 Генерация картинки', callback_data='image_generation')]
     ])
+
+def get_saved_posts_keyboard(ids: list):
+    keyboard = []
+    count = 0
+    for i in ids:
+        count += 1
+        keyboard.append([InlineKeyboardButton(text=f'Пост {count}', callback_data=f'{i[0]}')])
+    keyboard.append([InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

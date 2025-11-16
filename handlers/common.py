@@ -10,7 +10,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from io import BytesIO
 from aiogram.types import BufferedInputFile
-from services import create_profile, set_nko_information, get_npo_information, create_post
+
+from keyboards.common_keyboards import get_saved_posts_keyboard
+from services import create_profile, set_nko_information, get_npo_information, create_post, get_posts_id, get_post
 from states import MainStates
 from keyboards import *
 from texts import common_texts
@@ -132,10 +134,33 @@ async def generate_texts(message: types.Message, state: FSMContext):
     await state.update_data(text=escape_markdown_v2(response))
     await state.set_state(MainStates.main_menu)
 
-@router.callback_query(F.data == 'save')
+
+
+
+
+
+
+@router.callback_query(F.data == 'save_text')
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
-    await create_post(callback.from_user.id)
-    await callback.message.edit_text(text="Какие идеи вы хотите получить? Идеи визуала? Или может быть что другое?:",reply_markup=back_to_main_keyboard())
+    data = await state.get_data()
+    text = data.get("text")
+    await create_post(callback.from_user.id, text=text)
+    await callback.message.edit_text(text="Успешно сохранено!",reply_markup=back_to_main_keyboard())
+    await state.clear()
+    await state.set_state(MainStates.main_menu)
+
+@router.callback_query(F.data == 'saved_posts')
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.saved_posts_state)
+    ids = await get_posts_id(callback.from_user.id)
+    await callback.message.edit_text(text="Ваши посты",reply_markup=get_saved_posts_keyboard(ids))
+
+@router.callback_query(MainStates.saved_posts_state)
+async def handle_style_callback(callback: types.CallbackQuery):
+    _id = int(callback.data)
+    image, text = await get_post(user_id=callback.from_user.id, _id=_id)
+    await callback.message.edit_text(text=f"{text}",reply_markup=back_to_main_keyboard(), parse_mode="MarkdownV2")
+
 
 #меню ->  🎨 Генерация картинки 
 @router.callback_query(F.data == 'image_generation')

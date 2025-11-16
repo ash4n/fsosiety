@@ -7,3 +7,4 @@ class MainStates(StatesGroup):
     image_caption_input = State()
     text_generation_state = State()
     content_plan_creation_state = State()
+    saved_posts_state = State()
