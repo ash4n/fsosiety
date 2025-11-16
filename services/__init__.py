@@ -1,2 +1,2 @@
-from .users_db_manager import init_db, create_profile, set_nko_information, get_npo_information
-from .history_db_manager import init_db, create_post, get_new_post_id, get_posts_id, get_post, add_input_text, add_output_text, add_output_image, add_created_at
+from .users_db_manager import init_db as init_users_db, create_profile, set_nko_information, get_npo_information
+from .history_db_manager import init_db as init_history_db, create_post, get_new_post_id, get_posts_id, get_post, add_input_text, add_output_text, add_output_image, add_created_at

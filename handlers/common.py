@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from io import BytesIO
 from aiogram.types import BufferedInputFile
-from services import create_profile, set_nko_information, get_npo_information
+from services import create_profile, set_nko_information, get_npo_information, create_post
 from states import MainStates
 from keyboards import *
 from texts import common_texts
@@ -127,9 +127,15 @@ async def generate_texts(message: types.Message, state: FSMContext):
         prompt = await generate_prompt.GeneratePrompt.generate_idea_prompt(message.text,style,await get_npo_information(message.from_user.id))
         print(prompt)
         response = await giga.generate_text(prompt)
-    await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=back_to_main_keyboard())
+    await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=generate_text_post_keyboard())
     await state.clear()
+    await state.update_data(text=escape_markdown_v2(response))
     await state.set_state(MainStates.main_menu)
+
+@router.callback_query(F.data == 'save')
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await create_post(callback.from_user.id)
+    await callback.message.edit_text(text="Какие идеи вы хотите получить? Идеи визуала? Или может быть что другое?:",reply_markup=back_to_main_keyboard())
 
 #меню ->  🎨 Генерация картинки 
 @router.callback_query(F.data == 'image_generation')
@@ -147,7 +153,7 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
         nko_information=await get_npo_information(message.from_user.id), 
         giga=giga
     )
-    print(prompt)
+
     # Используем асинхронный контекстный менеджер для kandinsky
     async with kandinsky as api:
         image_data_base64 = await api.generate_image(prompt)
