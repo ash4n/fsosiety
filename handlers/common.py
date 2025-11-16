@@ -1,3 +1,5 @@
+from aiogram.exceptions import TelegramBadRequest
+
 import generate_prompt
 import keyboards.common_keyboards
 from helpers import escape_markdown_v2
@@ -46,15 +48,23 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 
 #функция запуска основного меню
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext):
+    await state.clear()
     await state.set_state(MainStates.main_menu)
-
     if isinstance(event, types.CallbackQuery):
-        await event.message.edit_text(text='меню крч',
-                                   reply_markup=get_menu_keyboard())
+        try:
+            await event.message.edit_text(
+                "меню крч",
+                reply_markup=get_menu_keyboard()
+            )
+        except TelegramBadRequest:
+            await event.message.answer(
+                "меню крч",
+                reply_markup=get_menu_keyboard()
+            )
     else:
         text = event.text
         
-        # if text != "/start": твоя функця тут
+
         if text != "/start":
             await set_nko_information(event.from_user.id,text)
             await event.edit_text(text=f'{text}',
@@ -138,8 +148,6 @@ async def generate_texts(message: types.Message, state: FSMContext):
 
 
 
-
-
 @router.callback_query(F.data == 'save_text')
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -163,33 +171,49 @@ async def handle_style_callback(callback: types.CallbackQuery):
 
 
 #меню ->  🎨 Генерация картинки 
-@router.callback_query(F.data == 'image_generation')
+@router.callback_query(F.data.startswith("image_generation"))
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.image_caption_input)
-    await callback.message.edit_text(text=f"Введите текстовое описание картинки для генерации.",reply_markup=back_to_main_keyboard())
+    if callback.data != "image_generation":
+        await callback.message.answer(text=f"Введите текстовое описание картинки для генерации.",
+                                         reply_markup=back_to_main_keyboard())
+    else:
+        await callback.message.edit_text(text=f"Введите текстовое описание картинки для генерации.",reply_markup=back_to_main_keyboard())
 
 #меню ->  🎨 Генерация картинки -> картинка сгенерирована. Сделаем еще одну?
 @router.message(MainStates.image_caption_input)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     await message.answer(text="Генерирую изображение, пожалуйста подождите")
-    
+    caption = "✅Ваше сгенерированное изображение"
+    reply_markup = None
+    data = await state.get_data()
+    data_text = data.get("text")
+    text = message.text
+    if data_text:
+        reply_markup = generate_post_keyboard()
+        caption = data_text
+        text += data_text
+
     prompt = await generate_prompt.GeneratePrompt.generate_prompt_for_image(
-        user_request=message.text, 
+        user_request=text,
         nko_information=await get_npo_information(message.from_user.id), 
         giga=giga
     )
-
+    print(prompt)
     # Используем асинхронный контекстный менеджер для kandinsky
     async with kandinsky as api:
-        image_data_base64 = await api.generate_image(prompt)
+        image_data_base64 = await api.generate_image(text)
         image_data = b64decode(image_data_base64)
         
         await message.answer_photo(
             photo=BufferedInputFile(image_data, filename="image.jpg"),
-            caption="✅Ваше сгенерированное изображение"
-        )
+            caption=caption,
+            reply_markup=reply_markup)
+
     await state.set_state(MainStates.main_menu)
-    await message.answer("❓Сгенерировать еще одно фото?", reply_markup=generate_another_one_image_keyboard())
+    if not data_text:
+        await message.answer("❓Сгенерировать еще одно фото?", reply_markup=generate_another_one_image_keyboard())
+
 
 #меню ->  ⏳ Создание контент-плана
 @router.callback_query(F.data == 'content_plan_creator')

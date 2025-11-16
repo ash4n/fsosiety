@@ -30,4 +30,6 @@ async def get_npo_information(user_id: int):
     async with aiosql.connect(db_path) as db:
         async with db.execute(f"SELECT npo_information FROM users WHERE user_id = ?", (user_id,)) as cursor:
             info = await cursor.fetchone()
-            return info[0]
+            if info:
+                return info[0]
+            return None
