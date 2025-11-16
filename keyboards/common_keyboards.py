@@ -56,9 +56,16 @@ def generate_text_post_keyboard():
         [InlineKeyboardButton(text='🔄 Создать заново', callback_data='text_generation')],
         [InlineKeyboardButton(text='💾 Сохранить', callback_data='save_text')],
         [InlineKeyboardButton(text='📚 Идеи оформления', callback_data='visual_ideas')],
-        [InlineKeyboardButton(text='🎨 Создание картинки', callback_data='image_generation')],
+        [InlineKeyboardButton(text='🎨 Создание картинки', callback_data='image_generation_text')],
         [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')]        
     ])
+
+def generate_post_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')],
+        [InlineKeyboardButton(text='💾 Сохранить', callback_data='save_post')],
+    ])
+
 def generate_content_plan_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
 
