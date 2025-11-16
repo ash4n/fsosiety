@@ -1,4 +1,4 @@
-# 🤖 Content Assistant Bot for NGOs
+# 🤖 Content Assistant Bot for NPOs
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![Aiogram](https://img.shields.io/badge/Aiogram-3.x-blue.svg)](https://docs.aiogram.dev/)
