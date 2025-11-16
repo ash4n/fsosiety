@@ -11,7 +11,7 @@ import redis.asyncio as redis
 import logging
 
 load_dotenv()
-TELEGRAM_TOKEN = "8512556585:AAFu5gRiT4AGi1vQrBhBLVuZoi3sU0a_b3k"
+TELEGRAM_TOKEN = "8398140480:AAGxkSFUHHw_6XqkEg9O9DzhfTvBbYE3nrg"
 session: ClientSession | None = None
 redis_conn = redis.Redis(
     host='localhost',

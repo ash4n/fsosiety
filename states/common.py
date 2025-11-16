@@ -9,3 +9,4 @@ class MainStates(StatesGroup):
     content_plan_creation_state = State()
     saved_posts_state = State()
     edit_text_state = State()
+    edit_post_text_state = State()

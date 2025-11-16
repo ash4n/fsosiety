@@ -47,6 +47,11 @@ def back_to_main_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='⏩ Главное меню', callback_data=common_callbacks.main_menu)]
     ])
+def change_text_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')],
+        [InlineKeyboardButton(text='Изменить текст', callback_data='change_text')]
+    ])
 def generate_another_one_image_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='🎨 Создание картинки', callback_data=common_callbacks.image_generation)],
@@ -65,6 +70,12 @@ def generate_post_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='⏩ Главное меню', callback_data=common_callbacks.main_menu)],
         [InlineKeyboardButton(text='💾 Сохранить', callback_data=common_callbacks.save_post)],
+    ])
+
+def change_text_post_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')],
+        [InlineKeyboardButton(text='💾 Сохранить', callback_data='save_text_changes')],
     ])
 
 def generate_content_plan_keyboard():
