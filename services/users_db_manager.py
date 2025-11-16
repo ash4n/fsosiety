@@ -21,7 +21,7 @@ async def create_profile(user_id):
                 await db.execute("INSERT INTO users VALUES(?, ?)", (user_id, None,))
             await db.commit()
 
-async def add_npo_information(user_id: int, info: str):
+async def set_nko_information(user_id: int, info: str):
     async with aiosql.connect(db_path) as db:
         async with db.execute(f"UPDATE users SET npo_information = ? WHERE user_id = ?", (info, user_id)):
             await db.commit()

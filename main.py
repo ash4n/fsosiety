@@ -44,7 +44,7 @@ async def main():
     finally:
         if not session.closed:
             await session.close()
-        await redis_conn.aclose()
+        await redis_conn.close()
         await storage.close()
         await bot.session.close()
 

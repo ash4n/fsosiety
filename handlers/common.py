@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from io import BytesIO
 from aiogram.types import BufferedInputFile
-from services import create_profile
+from services import create_profile, set_nko_information, get_npo_information
 from states import MainStates
 from keyboards import *
 from texts import common_texts
@@ -34,7 +34,12 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 @router.callback_query(F.data == 'main_menu')
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
     await show_main_menu(callback, state)
-    
+
+#/start -> 🏢 Настроить профиль НКО -> обработка текста
+@router.message(MainStates.name_NPO)
+async def handle_start_non_none(message: types.Message, state: FSMContext):
+    await show_main_menu(message, state)
+
 #функция запуска основного меню
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.main_menu)
@@ -44,24 +49,28 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
                                    reply_markup=get_menu_keyboard())
     else:
         text = event.text
+        
         # if text != "/start": твоя функця тут
         if text != "/start":
+            await set_nko_information(event.from_user.id,generate_prompt.GeneratePrompt.generate_nko_description(text))
             await event.edit_text(text=f'{text}',
                             reply_markup=get_menu_keyboard())
+            
         else:
             await event.answer(text=f'{text}',
                             reply_markup=get_menu_keyboard())
     
 #/start -> 🏢 Настроить профиль НКО
-@router.callback_query(MainStates.active, F.data == "input_nko_info")
+@router.callback_query(F.data == "input_nko_info")
 async def get_text(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.name_NPO)
-    await callback.message.edit_text("Название пиши и описание")
+    await callback.message.answer("Название пиши и описание")
 
 #menu->📝 Генерация текста
 @router.callback_query(MainStates.main_menu, F.data == 'text_generation')
 async def choose_form(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer(text="Выберите стиль",
+
+    await callback.message.edit_text(text="Выберите стиль",
                                   reply_markup=get_text_styles_keyboard())
 
 #menu->📝 Генерация текста -> Выберите стиль
@@ -75,14 +84,30 @@ async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext
     await state.update_data(style=selected_style)
 
     
-    await callback.message.answer(text="Выберите форму",
+    await callback.message.edit_text(text="Выберите форму",
                                   reply_markup=get_text_generation_keyboard())
 
 #menu->📝 Генерация текста -> Выберите стиль -> Выберите форму
 @router.callback_query(MainStates.text_generation_state, F.data == 'text_gen_input')
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer(text="Введите текст:")
+    await callback.message.edit_text(text="Введите свою идею для поста:",reply_markup=back_to_main_keyboard())
+    await state.update_data(type = "free")
 
+#menu->📝 Генерация текста -> Выберите стиль -> Выберите форму
+@router.callback_query(MainStates.text_generation_state, F.data == 'text_gen_input_structurized')
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(text="Введите что за событие, дата, место, кто приглашён, дополнительные детали:",reply_markup=back_to_main_keyboard())
+    await state.update_data(type = "structurized")
+
+#menu->📝 Генерация текста -> Выберите стиль -> Выберите форму
+@router.callback_query(MainStates.text_generation_state, F.data == 'text_gen_input_copy')
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(text="Введите пример поста который следует изменить, а также данные для изменения:",reply_markup=back_to_main_keyboard())
+    await state.update_data(type = "copy")
+@router.callback_query(MainStates.text_generation_state, F.data == 'text_gen_input_idea')
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(text="Какие идеи вы хотите получить? Идеи визуала? Или может быть что другое?:",reply_markup=back_to_main_keyboard())
+    await state.update_data(type = "idea")
 
 #menu->📝 Генерация текста -> Выберите стиль -> Выберите форму -> генерация текста
 @router.message(MainStates.text_generation_state)
@@ -90,33 +115,37 @@ async def generate_texts(message: types.Message, state: FSMContext):
     await message.answer(text="Генерирую текст, пожалуйста подождите")
     data = await state.get_data()
     style = data.get("style")
-    response = await giga.generate_text(await generate_prompt.GeneratePrompt.generate_content_prompt(message.text,style,None))
+    print(message.text)
+    if data.get("type") == "free" or data.get("type") == "structurized":
+        prompt = await generate_prompt.GeneratePrompt.generate_post_prompt(message.text,style,await get_npo_information(message.from_user.id))
+        response = await giga.generate_text(prompt)
+    elif data.get("type") == "copy":
+        response = await giga.generate_text(await generate_prompt.GeneratePrompt.generate_copy_of_post_prompt(message.text,style,await get_npo_information(message.from_user.id)))
+    elif data.get("type") == "idea":
+        prompt = await generate_prompt.GeneratePrompt.generate_idea_prompt(message.text,style,await get_npo_information(message.from_user.id))
+        print(prompt)
+        response = await giga.generate_text(prompt)
     await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=back_to_main_keyboard())
     await state.clear()
     await state.set_state(MainStates.main_menu)
-
-#/start -> 🏢 Настроить профиль НКО -> обработка текста
-@router.message(MainStates.name_NPO)
-async def handle_start_non_none(message: types.Message, state: FSMContext):
-    await show_main_menu(message, state)
 
 #меню ->  🎨 Генерация картинки 
 @router.callback_query(F.data == 'image_generation')
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.image_caption_input)
-    await callback.message.edit_text(text=f"Введите текстовое описание картинки для генерации.",reply_markup=None)
+    await callback.message.edit_text(text=f"Введите текстовое описание картинки для генерации.",reply_markup=back_to_main_keyboard())
 
-#меню ->  🎨 Генерация картинки -> обработка текста
+#меню ->  🎨 Генерация картинки -> картинка сгенерирована. Сделаем еще одну?
 @router.message(MainStates.image_caption_input)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     await message.answer(text="Генерирую изображение, пожалуйста подождите")
     
     prompt = await generate_prompt.GeneratePrompt.generate_prompt_for_image(
         user_request=message.text, 
-        nko_information=None, 
+        nko_information=await get_npo_information(message.from_user.id), 
         giga=giga
     )
-    
+    print(prompt)
     # Используем асинхронный контекстный менеджер для kandinsky
     async with kandinsky as api:
         image_data_base64 = await api.generate_image(prompt)
@@ -124,7 +153,8 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
         
         await message.answer_photo(
             photo=BufferedInputFile(image_data, filename="image.jpg"),
-            caption="✅ Ваше сгенерированное изображение",
-            reply_markup=back_to_main_keyboard()
+            caption="✅Ваше сгенерированное изображение"
         )
+    await state.set_state(MainStates.main_menu)
+    await message.answer("❓Сгенерировать еще одно фото?", reply_markup=generate_another_one_image_keyboard())
 
