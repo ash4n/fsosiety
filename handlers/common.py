@@ -243,10 +243,10 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 
         await state.update_data(image=image_data_base64)
         if caption == common_texts.your_picture:
-            await message.answer_photo(photo=BufferedInputFile(image_data=image_data, filename="image.jpg"),caption = caption)
+            await message.answer_photo(photo=BufferedInputFile(image_data, filename="image.jpg"),caption = caption)
             
         else:
-            await message.answer_photo(photo=BufferedInputFile(image_data=image_data, filename="image.jpg"))      
+            await message.answer_photo(photo=BufferedInputFile(image_data, filename="image.jpg"))      
             await message.answer(caption, reply_markup=reply_markup)   
             
     await state.set_state(MainStates.main_menu)
