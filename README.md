@@ -40,16 +40,4 @@
 - Telegram Bot Token 
 - GigaChat API ключ 
 - Kandinsky API ключ
-
-### Запуск
-## Установите зависимости (на windows Redis устанавливается отдельно)
-- pip install -r requirements.txt
-## Настройте окружение:
-В .env файле замените на свои:
-- BOT_TOKEN=your_telegram_bot_token
-- GIGACHAT_API_KEY=your_gigachat_credentials
-- KANDINSKY_API_KEY=your_kandinsky_api_key
-## Запуск
-- python3 bot.py
-
   
