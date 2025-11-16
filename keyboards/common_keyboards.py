@@ -44,3 +44,10 @@ def generate_another_one_image_keyboard():
         [InlineKeyboardButton(text='🎨 Генерация картинки', callback_data='image_generation')],
         [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')]
     ])
+def generate_text_post_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='Сгенерировать заново', callback_data='text_generation')],
+        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')],
+        [InlineKeyboardButton(text='Сохранить', callback_data='save_text')],
+        [InlineKeyboardButton(text='🎨 Генерация картинки', callback_data='image_generation')]
+    ])

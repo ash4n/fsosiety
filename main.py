@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher
 from aiohttp import ClientSession
 from dotenv import load_dotenv
 
-from services import init_db
+from services import init_users_db, init_history_db
 from handlers import register_all_handlers
 
 from aiogram.fsm.storage.redis import RedisStorage
@@ -37,7 +37,8 @@ async def main():
     session = ClientSession()
 
     await register_all_handlers(dp)
-    await init_db()
+    await init_users_db()
+    await init_history_db()
 
     try:
         await dp.start_polling(bot)
