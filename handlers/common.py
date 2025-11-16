@@ -14,7 +14,8 @@ from io import BytesIO
 from aiogram.types import BufferedInputFile
 
 from keyboards.common_keyboards import get_saved_posts_keyboard
-from services import create_profile, set_nko_information, get_npo_information, create_post, get_posts_id, get_post
+from services import create_profile, set_nko_information, get_npo_information, create_post, get_posts_id, get_post, \
+    add_text
 from states import MainStates
 from keyboards import *
 from texts import common_texts
@@ -118,6 +119,7 @@ async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(text="Введите пример поста который следует изменить, а также данные для изменения:",reply_markup=back_to_main_keyboard())
     await state.update_data(type = "copy")
+
 @router.callback_query(MainStates.text_generation_state, F.data == 'text_gen_input_idea')
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(text="Какие идеи вы хотите получить? Идеи визуала? Или может быть что другое?:",reply_markup=back_to_main_keyboard())
@@ -164,11 +166,57 @@ async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext
     await callback.message.edit_text(text="Ваши посты",reply_markup=get_saved_posts_keyboard(ids))
 
 @router.callback_query(MainStates.saved_posts_state)
-async def handle_style_callback(callback: types.CallbackQuery):
+async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.main_menu)
     _id = int(callback.data)
-    image, text = await get_post(user_id=callback.from_user.id, _id=_id)
-    await callback.message.edit_text(text=f"{text}",reply_markup=back_to_main_keyboard(), parse_mode="MarkdownV2")
+    await state.update_data(_id = _id)
+    image_data_base64, text = await get_post(user_id=callback.from_user.id, _id=_id)
+    await state.update_data(text=text)
+    await state.update_data(image=image_data_base64)
+    if image_data_base64:
+        image_data = b64decode(image_data_base64)
+        await callback.message.answer_photo(
+            photo=BufferedInputFile(image_data, filename="image.jpg"),
+            caption=text,
+            reply_markup=change_text_keyboard())
+    else:
+        await callback.message.edit_text(text=f"{text}",reply_markup=change_text_keyboard())
 
+@router.callback_query(F.data == 'change_text')
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.edit_post_text_state)
+    await callback.message.answer(text=f"Введите, что вы хотите изменить", reply_markup=back_to_main_keyboard())
+
+@router.message(MainStates.edit_post_text_state)
+async def handle_start_non_none(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    text = data.get("text") + message.text
+    prompt = await generate_prompt.GeneratePrompt.generate_edit_text_prompt(text,await get_npo_information(message.from_user.id))
+    response = await giga.generate_text(prompt)
+    print(prompt)
+    await state.update_data(text=escape_markdown_v2(response))
+    await message.answer(text=response,reply_markup=change_text_post_keyboard())
+
+@router.callback_query(F.data == 'save_text_changes')
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text="Успешно сохранено",reply_markup=back_to_main_keyboard())
+    data = await state.get_data()
+    text = data.get("text")
+    _id = data.get("_id")
+    await add_text(user_id=callback.from_user.id, _id=_id, info=text)
+    await state.clear()
+    await state.set_state(MainStates.main_menu)
+
+
+#меню ->  🎨 Генерация картинки
+@router.callback_query(F.data.startswith("image_generation"))
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.image_caption_input)
+    if callback.data != "image_generation":
+        await callback.message.answer(text=f"Введите текстовое описание картинки для генерации.",
+                                         reply_markup=back_to_main_keyboard())
+    else:
+        await callback.message.edit_text(text=f"Введите текстовое описание картинки для генерации.",reply_markup=back_to_main_keyboard())
 
 #меню ->  🎨 Генерация картинки 
 @router.callback_query(F.data.startswith("image_generation"))
@@ -194,17 +242,19 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
         caption = data_text
         text += data_text
 
-    prompt = await generate_prompt.GeneratePrompt.generate_prompt_for_image(
-        user_request=text,
-        nko_information=await get_npo_information(message.from_user.id), 
-        giga=giga
-    )
-    print(prompt)
+    # prompt = await generate_prompt.GeneratePrompt.generate_prompt_for_image(
+    #     user_request=text,
+    #     nko_information=await get_npo_information(message.from_user.id),
+    #     giga=giga
+    # )
     # Используем асинхронный контекстный менеджер для kandinsky
     async with kandinsky as api:
+
         image_data_base64 = await api.generate_image(text)
         image_data = b64decode(image_data_base64)
-        
+
+        await state.update_data(image=image_data_base64)
+
         await message.answer_photo(
             photo=BufferedInputFile(image_data, filename="image.jpg"),
             caption=caption,
@@ -213,6 +263,19 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
     await state.set_state(MainStates.main_menu)
     if not data_text:
         await message.answer("❓Сгенерировать еще одно фото?", reply_markup=generate_another_one_image_keyboard())
+
+
+@router.callback_query(F.data == 'save_post')
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text="Успешно сохранено",reply_markup=back_to_main_keyboard())
+    data = await state.get_data()
+    image = data.get("image")
+    text = data.get("text")
+    await create_post(user_id=callback.from_user.id, image=image, text=text)
+    await state.clear()
+    await state.set_state(MainStates.main_menu)
+
+
 
 
 #меню ->  ⏳ Создание контент-плана
@@ -233,7 +296,7 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 #меню ->  📝 Редактор текста
 @router.callback_query(F.data == 'text_editor')
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(text=f"Выберите что вы хотите изменить: ",reply_markup=text_editor_menu())
+    await callback.message.edit_text(text=f"Выберите что вы хотите изменить: ", reply_markup=text_editor_menu())
 
 #меню ->  📝 Редактор текста -> 📝 Исправить отправленный текст -> ввод пользователя
 @router.callback_query(F.data == 'edit_sended_text')
@@ -244,7 +307,7 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
 @router.message(MainStates.edit_text_state)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     prompt = await generate_prompt.GeneratePrompt.generate_edit_text_prompt(message.text,await get_npo_information(message.from_user.id))
-    print(prompt)
     response = await giga.generate_text(prompt)
+    await state.update_data(text=escape_markdown_v2(response))
     await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=generate_content_plan_keyboard())
     await state.set_state(MainStates.main_menu)

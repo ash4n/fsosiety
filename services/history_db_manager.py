@@ -40,9 +40,9 @@ async def get_post(user_id, _id):
             image, text = row
             return image, text
 
-async def add_text(user_id: int, info: str):
+async def add_text(user_id: int, info: str, _id: int):
     async with aiosql.connect(db_path) as db:
-        async with db.execute("UPDATE history SET text = ? WHERE user_id = ? AND id = ?", (info, user_id)):
+        async with db.execute("UPDATE history SET text = ? WHERE user_id = ? AND id = ?", (info, user_id, _id)):
             await db.commit()
 
 async def add_image(user_id: int, info: str):
