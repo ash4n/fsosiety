@@ -38,7 +38,7 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
 #/start -> 🏢 Настроить профиль НКО -> обработка текста
 @router.message(MainStates.name_NPO)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
-    await set_nko_information(message.from_user.id,await generate_prompt.GeneratePrompt.generate_nko_description(short_nko_description=message.text,giga=giga))
+    await set_nko_information(message.from_user.id,message.text)
     await message.answer(text="Изменения сохранены!",reply_markup=back_to_main_keyboard())
     await state.set_state(MainStates.main_menu)
 
@@ -54,7 +54,7 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
         
         # if text != "/start": твоя функця тут
         if text != "/start":
-            await set_nko_information(event.from_user.id,await generate_prompt.GeneratePrompt.generate_nko_description(short_nko_description=text,giga=giga))
+            await set_nko_information(event.from_user.id,text)
             await event.edit_text(text=f'{text}',
                             reply_markup=get_menu_keyboard())
             
@@ -166,3 +166,17 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
     await state.set_state(MainStates.main_menu)
     await message.answer("❓Сгенерировать еще одно фото?", reply_markup=generate_another_one_image_keyboard())
 
+#меню ->  ⏳ Создание контент-плана
+@router.callback_query(F.data == 'content_plan_creator')
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.content_plan_creation_state)
+    await callback.message.edit_text(text=f"Введите текстовое описание контент плана для создания",reply_markup=back_to_main_keyboard())
+
+#/start -> ⏳ Создание контент-плана -> текст сгенерирован
+@router.message(MainStates.content_plan_creation_state)
+async def handle_start_non_none(message: types.Message, state: FSMContext):
+    prompt = await generate_prompt.GeneratePrompt.generate_content_plan_prompt(message.text,await get_npo_information(message.from_user.id))
+    print(prompt)
+    response = await giga.generate_text(prompt)
+    await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=generate_content_plan_keyboard())
+    await state.set_state(MainStates.main_menu)
