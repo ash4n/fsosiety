@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![Aiogram](https://img.shields.io/badge/Aiogram-3.x-blue.svg)](https://docs.aiogram.dev/)
 [![GigaChat](https://img.shields.io/badge/Powered%20by-GigaChat-green.svg)](https://developers.sber.ru/portal/products/gigachat-api)
-[![Kandinsky](https://img.shields.io/badge/Art%20by-Kandinsky-orange.svg)](https://github.com/sberbank-ai/ Kandinsky)
+[![Kandinsky](https://img.shields.io/badge/Art%20by-Kandinsky-orange.svg)](https://github.com/sberbank-ai/)
 
 Умный Telegram-бот для автоматизации контент-маркетинга некоммерческих организаций. Генерирует тексты, визуальные идеи и стратегический контент-план, сохраняя стиль и ценности НКО.
 
