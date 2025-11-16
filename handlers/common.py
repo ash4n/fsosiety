@@ -43,7 +43,7 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
 @router.message(MainStates.name_NPO)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     await set_nko_information(message.from_user.id,message.text)
-    await message.answer(text=common_texts.changes_saved,reply_markup=back_to_main_keyboard())
+    await message.answer(text=common_texts.saved_succesfully,reply_markup=back_to_main_keyboard())
     await state.set_state(MainStates.main_menu)
 
 #функция запуска основного меню
@@ -176,10 +176,10 @@ async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext
     else:
         await callback.message.edit_text(text=f"{text}",reply_markup=change_text_keyboard())
 
-@router.callback_query(F.data == 'change_text')
+@router.callback_query(F.data == common_callbacks.change_text)
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.edit_post_text_state)
-    await callback.message.answer(text=f"Введите, что вы хотите изменить", reply_markup=back_to_main_keyboard())
+    await callback.message.answer(text=common_texts.what_we_will_edit, reply_markup=back_to_main_keyboard())
 
 @router.message(MainStates.edit_post_text_state)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
@@ -191,7 +191,7 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
     await state.update_data(text=response)
     await message.answer(text=response,reply_markup=change_text_post_keyboard())
 
-@router.callback_query(F.data == 'save_text_changes')
+@router.callback_query(F.data == common_callbacks.save_text_changes)
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text="Успешно сохранено",reply_markup=back_to_main_keyboard())
     data = await state.get_data()
@@ -206,11 +206,11 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
 @router.callback_query(F.data.startswith("image_generation"))
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.image_caption_input)
-    if callback.data != "image_generation":
-        await callback.message.answer(text=f"Введите текстовое описание картинки для генерации.",
+    if callback.data != common_callbacks.image_generation:
+        await callback.message.answer(text=common_texts.text_descryption_for_picture,
                                          reply_markup=back_to_main_keyboard())
     else:
-        await callback.message.edit_text(text=f"Введите текстовое описание картинки для генерации.",reply_markup=back_to_main_keyboard())
+        await callback.message.edit_text(text=common_texts.text_descryption_for_picture,reply_markup=back_to_main_keyboard())
 
 #меню ->  🎨 Генерация картинки 
 @router.callback_query(F.data.startswith(common_callbacks.image_generation))
@@ -243,7 +243,7 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 
         await state.update_data(image=image_data_base64)
         if caption == common_texts.your_picture:
-            await message.answer_photo(photo=BufferedInputFile(caption = caption ,image_data=image_data, filename="image.jpg"))
+            await message.answer_photo(photo=BufferedInputFile(image_data=image_data, filename="image.jpg"),caption = caption)
             
         else:
             await message.answer_photo(photo=BufferedInputFile(image_data=image_data, filename="image.jpg"))      
@@ -254,18 +254,15 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
         await message.answer(common_texts.generate_another_picture, reply_markup=generate_another_one_image_keyboard())
 
 
-@router.callback_query(F.data == 'save_post')
+@router.callback_query(F.data == common_callbacks.save_post)
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer(text="Успешно сохранено",reply_markup=back_to_main_keyboard())
+    await callback.message.answer(text=common_texts.saved_succesfully,reply_markup=back_to_main_keyboard())
     data = await state.get_data()
     image = data.get("image")
     text = data.get("text")
     await create_post(user_id=callback.from_user.id, image=image, text=text)
     await state.clear()
     await state.set_state(MainStates.main_menu)
-
-
-
 
 #меню ->  ⏳ Создание контент-плана
 @router.callback_query(F.data == common_callbacks.content_plan_creator)

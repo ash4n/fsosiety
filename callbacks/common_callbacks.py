@@ -18,5 +18,7 @@ class CommonCallbacks:
     visual_ideas: str = "visual_ideas"
     image_generation_text: str = "image_generation_text"
     save_post: str = "save_post"
+    save_text_changes: str = "save_text_changes"
+    change_text: str = "change_text"
 
 callbacks = CommonCallbacks()
