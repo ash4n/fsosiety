@@ -33,7 +33,7 @@ class GeneratePrompt:
     
         return enhanced_prompt.strip()
     
-    async def generate_nko_description(self, short_nko_description: str, giga: api.gigachat_api.GigaChatAPI) -> str:
+    async def generate_nko_description(short_nko_description: str, giga: api.gigachat_api.GigaChatAPI) -> str:
         """
         Создает подробное описание НКО на основе краткого описания.
     

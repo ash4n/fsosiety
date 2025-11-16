@@ -38,7 +38,9 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
 #/start -> 🏢 Настроить профиль НКО -> обработка текста
 @router.message(MainStates.name_NPO)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
-    await show_main_menu(message, state)
+    await set_nko_information(message.from_user.id,await generate_prompt.GeneratePrompt.generate_nko_description(short_nko_description=message.text,giga=giga))
+    await message.answer(text="Изменения сохранены!",reply_markup=back_to_main_keyboard())
+    await state.set_state(MainStates.main_menu)
 
 #функция запуска основного меню
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext):
@@ -52,7 +54,7 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
         
         # if text != "/start": твоя функця тут
         if text != "/start":
-            await set_nko_information(event.from_user.id,generate_prompt.GeneratePrompt.generate_nko_description(text))
+            await set_nko_information(event.from_user.id,await generate_prompt.GeneratePrompt.generate_nko_description(short_nko_description=text,giga=giga))
             await event.edit_text(text=f'{text}',
                             reply_markup=get_menu_keyboard())
             
