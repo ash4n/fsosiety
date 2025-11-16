@@ -3,24 +3,31 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def get_start_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='🏢 Настроить профиль НКО', callback_data='input_nko_info')],
-        [InlineKeyboardButton(text='⏩ Пропустить → Главное меню', callback_data='main_menu')],
+        [InlineKeyboardButton(text='⏩ Пропустить → Главное меню', callback_data='main_menu')]
     ])
 
 def get_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='🤖 Генерация текста', callback_data='text_generation')],
-        [InlineKeyboardButton(text='🎨 Генерация картинки', callback_data='image_generation')],
-        [InlineKeyboardButton(text='📝 Редактор текста', callback_data='text_editor')],
+        [InlineKeyboardButton(text='🤖 Написание текста', callback_data='text_generation')],
+        [InlineKeyboardButton(text='🎨 Нарисовать картинку', callback_data='image_generation')],
+        [InlineKeyboardButton(text='📝 Исправление текста', callback_data='text_editor')],
         [InlineKeyboardButton(text='⏳ Создание контент-плана', callback_data='content_plan_creator')],
         [InlineKeyboardButton(text='💾 Сохраненные посты', callback_data='saved_posts')],
-        [InlineKeyboardButton(text='⚙️ Настройки НКО', callback_data='input_nko_info')],
+        [InlineKeyboardButton(text='⚙️ Настройки НКО', callback_data='input_nko_info')]
+    ])
+
+def text_editor_menu():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='📝 Исправить отправленный текст', callback_data='edit_sended_text')],
+        [InlineKeyboardButton(text='💾 Исправить сохраненные посты', callback_data='saved_posts')],
+        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')] 
     ])
 
 def get_text_generation_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='🔓 Свободная', callback_data='text_gen_input')],
         [InlineKeyboardButton(text='🏗 Структурированная', callback_data='text_gen_input_structurized')],
-        [InlineKeyboardButton(text='📄 Сгенерировать пост на основе другого', callback_data='text_gen_input_copy')],
+        [InlineKeyboardButton(text='📄 Сделать пост на основе другого', callback_data='text_gen_input_copy')],
         [InlineKeyboardButton(text='💡 Попросить идею чего-либо (визуал)', callback_data='text_gen_input_idea')],
         [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')]
     ])
@@ -41,21 +48,23 @@ def back_to_main_keyboard():
     ])
 def generate_another_one_image_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='🎨 Генерация картинки', callback_data='image_generation')],
+        [InlineKeyboardButton(text='🎨 Создание картинки', callback_data='image_generation')],
         [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')]
     ])
 def generate_text_post_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='🔄 Сгенерировать заново', callback_data='text_generation')],
-        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')],
+        [InlineKeyboardButton(text='🔄 Создать заново', callback_data='text_generation')],
         [InlineKeyboardButton(text='💾 Сохранить', callback_data='save_text')],
-        [InlineKeyboardButton(text='🎨 Генерация картинки', callback_data='image_generation')]
+        [InlineKeyboardButton(text='📚 Идеи оформления', callback_data='visual_ideas')],
+        [InlineKeyboardButton(text='🎨 Создание картинки', callback_data='image_generation')],
+        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')]        
     ])
 def generate_content_plan_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')],
+
         [InlineKeyboardButton(text='💾 Сохранить', callback_data='save_text')],
-        [InlineKeyboardButton(text='🎨 Генерация картинки', callback_data='image_generation')]
+        [InlineKeyboardButton(text='🎨 Создание картинки', callback_data='image_generation')],
+        [InlineKeyboardButton(text='⏩ Главное меню', callback_data='main_menu')]
     ])
 
 def get_saved_posts_keyboard(ids: list):

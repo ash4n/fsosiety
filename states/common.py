@@ -8,3 +8,4 @@ class MainStates(StatesGroup):
     text_generation_state = State()
     content_plan_creation_state = State()
     saved_posts_state = State()
+    edit_text_state = State()

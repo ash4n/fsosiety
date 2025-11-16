@@ -134,12 +134,6 @@ async def generate_texts(message: types.Message, state: FSMContext):
     await state.update_data(text=escape_markdown_v2(response))
     await state.set_state(MainStates.main_menu)
 
-
-
-
-
-
-
 @router.callback_query(F.data == 'save_text')
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -201,6 +195,25 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
 @router.message(MainStates.content_plan_creation_state)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     prompt = await generate_prompt.GeneratePrompt.generate_content_plan_prompt(message.text,await get_npo_information(message.from_user.id))
+    print(prompt)
+    response = await giga.generate_text(prompt)
+    await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=generate_content_plan_keyboard())
+    await state.set_state(MainStates.main_menu)
+
+#меню ->  📝 Редактор текста
+@router.callback_query(F.data == 'text_editor')
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(text=f"Выберите что вы хотите изменить: ",reply_markup=text_editor_menu())
+
+#меню ->  📝 Редактор текста -> 📝 Исправить отправленный текст -> ввод пользователя
+@router.callback_query(F.data == 'edit_sended_text')
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.edit_text_state)
+    await callback.message.edit_text(text=f"Введите исходный текст поста и изменения которые вы хотите применить. Например: исправить ошибки, добавить смайлики, предложения по улучшению поста: ",reply_markup=back_to_main_keyboard())
+
+@router.message(MainStates.edit_text_state)
+async def handle_start_non_none(message: types.Message, state: FSMContext):
+    prompt = await generate_prompt.GeneratePrompt.generate_edit_text_prompt(message.text,await get_npo_information(message.from_user.id))
     print(prompt)
     response = await giga.generate_text(prompt)
     await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=generate_content_plan_keyboard())
