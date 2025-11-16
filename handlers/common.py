@@ -1,6 +1,5 @@
 import generate_prompt
 import types.common_types as styleTypes
-from helpers import escape_markdown_v2
 from base64 import b64decode
 from api import giga,kandinsky
 from aiogram import Router, types, F
@@ -136,9 +135,9 @@ async def generate_texts(message: types.Message, state: FSMContext):
         prompt = await generate_prompt.GeneratePrompt.generate_idea_prompt(message.text,style,await get_npo_information(message.from_user.id))
         print(prompt)
         response = await giga.generate_text(prompt)
-    await message.answer(text=escape_markdown_v2(response),parse_mode="MarkdownV2",reply_markup=generate_text_post_keyboard())
+    await message.answer(text=response,reply_markup=generate_text_post_keyboard())
     await state.clear()
-    await state.update_data(text=escape_markdown_v2(response))
+    await state.update_data(text=response)
     await state.set_state(MainStates.main_menu)
 
 
@@ -164,7 +163,7 @@ async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext
 async def handle_style_callback(callback: types.CallbackQuery):
     _id = int(callback.data)
     image, text = await get_post(user_id=callback.from_user.id, _id=_id)
-    await callback.message.edit_text(text=f"{text}",reply_markup=back_to_main_keyboard(), parse_mode="MarkdownV2")
+    await callback.message.edit_text(text=f"{text}",reply_markup=back_to_main_keyboard())
 
 
 #меню ->  🎨 Генерация картинки 
