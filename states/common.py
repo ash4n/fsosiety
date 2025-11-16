@@ -10,3 +10,4 @@ class MainStates(StatesGroup):
     saved_posts_state = State()
     edit_text_state = State()
     edit_post_text_state = State()
+    generating_text_state = State()

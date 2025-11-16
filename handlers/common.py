@@ -6,10 +6,7 @@ from aiogram import Router, types, F
 from aiogram.filters import StateFilter
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from io import BytesIO
 from aiogram.types import BufferedInputFile
-from services import create_profile, set_nko_information, get_npo_information, create_post, get_posts_id, get_post
 
 from keyboards.common_keyboards import get_saved_posts_keyboard
 from services import create_profile, set_nko_information, get_npo_information, create_post, get_posts_id, get_post, \
@@ -105,29 +102,35 @@ async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext
 @router.callback_query(MainStates.text_generation_state, F.data == common_callbacks.text_gen_input)
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(text=common_texts.input_your_idea,reply_markup=back_to_main_keyboard())
+    await state.set_state(MainStates.generating_text_state)
     await state.update_data(type = styleTypes.free)
 
 #menu->📝 Генерация текста -> Выберите стиль -> Выберите форму
 @router.callback_query(MainStates.text_generation_state, F.data == common_callbacks.text_gen_input_structurized)
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.generating_text_state)
     await callback.message.edit_text(text=common_texts.which_type_of_event,reply_markup=back_to_main_keyboard())
     await state.update_data(type = styleTypes.structurized)
 
 #menu->📝 Генерация текста -> Выберите стиль -> Выберите форму
 @router.callback_query(MainStates.text_generation_state, F.data == common_callbacks.text_gen_input_copy)
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.generating_text_state)
     await callback.message.edit_text(text=common_texts.example_of_post_and_improvements,reply_markup=back_to_main_keyboard())
     await state.update_data(type = styleTypes.copy)
+
 @router.callback_query(MainStates.text_generation_state, F.data == common_callbacks.text_gen_input_idea)
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(MainStates.generating_text_state)
     await callback.message.edit_text(text=common_texts.which_ideas,reply_markup=back_to_main_keyboard())
     await state.update_data(type = styleTypes.idea)
 
 #menu->📝 Генерация текста -> Выберите стиль -> Выберите форму -> генерация текста
-@router.message(MainStates.text_generation_state)
+@router.message(MainStates.generating_text_state)
 async def generate_texts(message: types.Message, state: FSMContext):
     await message.answer(text=common_texts.generating_text)
     data = await state.get_data()
+    image = data.get("image") if data.get("image") else None
     style = data.get("style")
     print(message.text)
     if data.get("type") == styleTypes.free or data.get("type") == styleTypes.structurized:
@@ -137,11 +140,17 @@ async def generate_texts(message: types.Message, state: FSMContext):
         response = await giga.generate_text(await generate_prompt.GeneratePrompt.generate_copy_of_post_prompt(message.text,style,await get_npo_information(message.from_user.id)))
     elif data.get("type") == styleTypes.idea:
         prompt = await generate_prompt.GeneratePrompt.generate_idea_prompt(message.text,style,await get_npo_information(message.from_user.id))
-        print(prompt)
         response = await giga.generate_text(prompt)
-    await message.answer(text=response,reply_markup=generate_text_post_keyboard())
+    if image:
+        image_data = b64decode(image)
+        await message.answer_photo(
+            photo=BufferedInputFile(image_data, filename="image.jpg"))
+        await message.answer(response, reply_markup=generate_text_post_keyboard())
+    else:
+        await message.answer(text=response,reply_markup=generate_text_post_keyboard())
     await state.clear()
     await state.update_data(text=response)
+    await state.update_data(image=image)
     await state.update_data(user_request=message.text)
     await state.set_state(MainStates.main_menu)
 
@@ -149,7 +158,8 @@ async def generate_texts(message: types.Message, state: FSMContext):
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     text = data.get("text")
-    await create_post(callback.from_user.id, text=text)
+    image = data.get("image") if data.get("image") else None
+    await create_post(callback.from_user.id, text=text, image=image)
     await callback.message.edit_text(text=common_texts.saved_succesfully,reply_markup=back_to_main_keyboard())
     await state.clear()
     await state.set_state(MainStates.main_menu)
@@ -166,15 +176,17 @@ async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext
     _id = int(callback.data)
     await state.update_data(_id = _id)
     image_data_base64, text = await get_post(user_id=callback.from_user.id, _id=_id)
+    if not text:
+        text = "Текст отсутствует"
     await state.update_data(text=text)
     await state.update_data(image=image_data_base64)
     if image_data_base64:
         image_data = b64decode(image_data_base64)
         await callback.message.answer_photo(
             photo=BufferedInputFile(image_data, filename="image.jpg"))
-        await callback.message.answer(text, reply_markup=change_text_keyboard())        
+        await callback.message.answer(text, reply_markup=change_text_keyboard())
     else:
-        await callback.message.edit_text(text=f"{text}",reply_markup=change_text_keyboard())
+        await callback.message.edit_text(text=text,reply_markup=change_text_keyboard())
 
 @router.callback_query(F.data == common_callbacks.change_text)
 async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
@@ -184,7 +196,9 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
 @router.message(MainStates.edit_post_text_state)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    text = data.get("text") + message.text
+    text = message.text
+    if data.get("text") != "Текст отсутствует":
+        text = data.get("text") + message.text
     prompt = await generate_prompt.GeneratePrompt.generate_edit_text_prompt(text,await get_npo_information(message.from_user.id))
     response = await giga.generate_text(prompt)
     print(prompt)
@@ -243,10 +257,10 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
 
         await state.update_data(image=image_data_base64)
         if caption == common_texts.your_picture:
-            await message.answer_photo(photo=BufferedInputFile(image_data=image_data, filename="image.jpg"),caption = caption)
+            await message.answer_photo(photo=BufferedInputFile(image_data, filename="image.jpg"),caption = caption)
             
         else:
-            await message.answer_photo(photo=BufferedInputFile(image_data=image_data, filename="image.jpg"))      
+            await message.answer_photo(photo=BufferedInputFile(image_data, filename="image.jpg"))
             await message.answer(caption, reply_markup=reply_markup)   
             
     await state.set_state(MainStates.main_menu)
@@ -274,8 +288,8 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
 @router.message(MainStates.content_plan_creation_state)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     prompt = await generate_prompt.GeneratePrompt.generate_content_plan_prompt(message.text,await get_npo_information(message.from_user.id))
-    print(prompt)
     response = await giga.generate_text(prompt)
+    await state.update_data(text=response)
     await message.answer(text=response,reply_markup=generate_content_plan_keyboard())
     await state.set_state(MainStates.main_menu)
 
