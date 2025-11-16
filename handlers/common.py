@@ -1,5 +1,5 @@
 import generate_prompt
-import types.common_types as styleTypes
+import textTypes.common_types as styleTypes
 from base64 import b64decode
 from api import giga,kandinsky
 from aiogram import Router, types, F
@@ -53,12 +53,12 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
     if isinstance(event, types.CallbackQuery):
         try:
             await event.message.edit_text(
-                f"{common_texts.your_nko}: {await get_npo_information(event.from_user.id)}",
+                f"{common_texts.your_nko} {await get_npo_information(event.from_user.id)}",
                 reply_markup=get_menu_keyboard()
             )
         except TelegramBadRequest:
             await event.message.answer(
-                f"{common_texts.your_nko}: {await get_npo_information(event.from_user.id)}",
+                f"{common_texts.your_nko} {await get_npo_information(event.from_user.id)}",
                 reply_markup=get_menu_keyboard()
             )
     else:
@@ -67,11 +67,11 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
 
         if text != "/start":
             await set_nko_information(event.from_user.id,text)
-            await event.edit_text(text=f"{common_texts.your_nko}: {await get_npo_information(event.from_user.id)}",
+            await event.edit_text(text=f"{common_texts.your_nko} {await get_npo_information(event.from_user.id)}",
                             reply_markup=get_menu_keyboard())
             
         else:
-            await event.answer(text=f"{common_texts.your_nko}: {await get_npo_information(event.from_user.id)}",
+            await event.answer(text=f"{common_texts.your_nko} {await get_npo_information(event.from_user.id)}",
                             reply_markup=get_menu_keyboard())
     
 #/start -> 🏢 Настроить профиль НКО
@@ -142,11 +142,8 @@ async def generate_texts(message: types.Message, state: FSMContext):
     await message.answer(text=response,reply_markup=generate_text_post_keyboard())
     await state.clear()
     await state.update_data(text=response)
+    await state.update_data(user_request=message.text)
     await state.set_state(MainStates.main_menu)
-
-
-
-
 
 @router.callback_query(F.data == common_callbacks.save_text)
 async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext):
@@ -174,9 +171,8 @@ async def handle_style_callback(callback: types.CallbackQuery, state: FSMContext
     if image_data_base64:
         image_data = b64decode(image_data_base64)
         await callback.message.answer_photo(
-            photo=BufferedInputFile(image_data, filename="image.jpg"),
-            caption=text,
-            reply_markup=change_text_keyboard())
+            photo=BufferedInputFile(image_data, filename="image.jpg"))
+        await callback.message.answer(text, reply_markup=change_text_keyboard())        
     else:
         await callback.message.edit_text(text=f"{text}",reply_markup=change_text_keyboard())
 
@@ -192,7 +188,7 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
     prompt = await generate_prompt.GeneratePrompt.generate_edit_text_prompt(text,await get_npo_information(message.from_user.id))
     response = await giga.generate_text(prompt)
     print(prompt)
-    await state.update_data(text=escape_markdown_v2(response))
+    await state.update_data(text=response)
     await message.answer(text=response,reply_markup=change_text_post_keyboard())
 
 @router.callback_query(F.data == 'save_text_changes')
@@ -238,26 +234,21 @@ async def handle_start_non_none(message: types.Message, state: FSMContext):
     if data_text:
         reply_markup = generate_post_keyboard()
         caption = data_text
-        text += data_text
-
-    # prompt = await generate_prompt.GeneratePrompt.generate_prompt_for_image(
-    #     user_request=text,
-    #     nko_information=await get_npo_information(message.from_user.id),
-    #     giga=giga
-    # )
+        text += data_text 
     # Используем асинхронный контекстный менеджер для kandinsky
     async with kandinsky as api:
 
-        image_data_base64 = await api.generate_image(text)
+        image_data_base64 = await api.generate_image(message.text)
         image_data = b64decode(image_data_base64)
 
         await state.update_data(image=image_data_base64)
-
-        await message.answer_photo(
-            photo=BufferedInputFile(image_data, filename="image.jpg"),
-            caption=caption,
-            reply_markup=reply_markup)
-
+        if caption == common_texts.your_picture:
+            await message.answer_photo(photo=BufferedInputFile(caption = caption ,image_data=image_data, filename="image.jpg"))
+            
+        else:
+            await message.answer_photo(photo=BufferedInputFile(image_data=image_data, filename="image.jpg"))      
+            await message.answer(caption, reply_markup=reply_markup)   
+            
     await state.set_state(MainStates.main_menu)
     if not data_text:
         await message.answer(common_texts.generate_another_picture, reply_markup=generate_another_one_image_keyboard())
@@ -302,10 +293,17 @@ async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMCon
     await state.set_state(MainStates.edit_text_state)
     await callback.message.edit_text(text=common_texts.input_post_for_improvement,reply_markup=back_to_main_keyboard())
 
+@router.callback_query(F.data == common_callbacks.visual_ideas)
+async def handle_main_menu_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer(common_texts.generating_text)
+    data = await state.get_data()
+    response = await giga.generate_text(await generate_prompt.GeneratePrompt.generate_idea_prompt(data.get("user_request") + " идеи оформления",data.get("style"),await get_npo_information(callback.from_user.id)))
+    await callback.message.answer(text=response,reply_markup=back_to_main_keyboard())
+
 @router.message(MainStates.edit_text_state)
 async def handle_start_non_none(message: types.Message, state: FSMContext):
     prompt = await generate_prompt.GeneratePrompt.generate_edit_text_prompt(message.text,await get_npo_information(message.from_user.id))
     response = await giga.generate_text(prompt)
-    await state.update_data(text=escape_markdown_v2(response))
+    await state.update_data(text=response)
     await message.answer(text=response,reply_markup=generate_content_plan_keyboard())
     await state.set_state(MainStates.main_menu)
